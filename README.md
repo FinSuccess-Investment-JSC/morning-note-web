@@ -1,5 +1,7 @@
-# Morning Note V2 · static preview
+# Morning Note · FinSuccess
 
-This GitHub Pages site hosts the standalone HTML snapshot supplied on 10 October 2026. The embedded news data is dated 9 October 2026. It does not fetch new news, and edits are stored only in the visitor's browser. The private `Morning-note` repository remains the source archive.
+Trang tĩnh được build và publish tự động từ repo private `Morning-note`. Không sửa tay ở đây.
 
-Do not label this snapshot as a live feed on the company website. Replace this deployment with the live application and an approved data/update workflow before using it as a current market note.
+- `index.html`: bản tin cho khách hàng (gắn lên website bằng iframe).
+- `admin.html`: trang quản trị cho team, cần key GitHub có quyền với repo `Morning-note`.
+- `data/customer.json`: bản tin mới nhất, workflow `update-data` cập nhật theo lịch.

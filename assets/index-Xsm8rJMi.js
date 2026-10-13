@@ -1,0 +1,1 @@
+import{h as e,n as t,t as n}from"./globals-DZqd5XEC.js";var r=e(),i=t(),a=window.fetch.bind(window);window.fetch=(e,t)=>typeof e==`string`&&e===`/api/customer`?a(`data/customer.json?t=`+Date.now(),{cache:`no-store`}):a(e,t),(0,r.createRoot)(document.getElementById(`root`)).render((0,i.jsx)(n,{initial:null,readOnly:!0}));
