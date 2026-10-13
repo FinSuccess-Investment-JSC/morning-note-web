@@ -46,7 +46,7 @@ var assets = [
   asset("wti", "D\u1EA7u th\xF4 WTI", "CL=F", "commodity", "USD/th\xF9ng", 2, "yahoo", "H\u1EE3p \u0111\u1ED3ng t\u01B0\u01A1ng lai"),
   asset("brent", "D\u1EA7u Brent", "BZ=F", "commodity", "USD/th\xF9ng", 2, "yahoo", "H\u1EE3p \u0111\u1ED3ng t\u01B0\u01A1ng lai"),
   asset("gas", "Kh\xED t\u1EF1 nhi\xEAn", "NG=F", "commodity", "USD/MMBtu", 3, "yahoo", "H\u1EE3p \u0111\u1ED3ng t\u01B0\u01A1ng lai"),
-  asset("gold", "V\xE0ng XAU/USD", "XAU", "commodity", "USD/oz", 2, "investing", "Giao ngay"),
+  asset("gold", "V\xE0ng COMEX", "GC=F", "commodity", "USD/oz", 2, "yahoo", "H\u1EE3p \u0111\u1ED3ng t\u01B0\u01A1ng lai"),
   asset("steel", "Steel HRC FOB China", "LME:HC1!", "commodity", "USD/t\u1EA5n", 2, "tradingview", "H\u1EE3p \u0111\u1ED3ng t\u01B0\u01A1ng lai"),
   asset("btc", "BTC/USD", "bitcoin", "crypto", "USD", 2, "coingecko", "Bi\u1EBFn \u0111\u1ED9ng 24h"),
   asset("eth", "ETH/USD", "ethereum", "crypto", "USD", 2, "coingecko", "Bi\u1EBFn \u0111\u1ED9ng 24h"),
