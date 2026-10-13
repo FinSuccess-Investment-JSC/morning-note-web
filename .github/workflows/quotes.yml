@@ -1,0 +1,37 @@
+# Lấy giá chỉ số/hàng hóa/tiền điện tử mỗi ~10 phút cho trang Morning Note.
+# File này do workflow deploy-site của repo Morning-note (private) chép sang; sửa ở đó, không sửa ở đây.
+# Chạy ở repo public nên không tốn phút Actions. Kết quả ghi vào nhánh `quotes` (1 commit, ghi đè),
+# không phải nhánh main, để không kích hoạt build GitHub Pages mỗi lần.
+name: quotes
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: quotes
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  quotes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Lấy giá
+        run: node tools/quotes.mjs data/customer.json "$RUNNER_TEMP/quotes/quotes.json"
+
+      - name: Lưu vào nhánh quotes
+        run: |
+          cd "$RUNNER_TEMP/quotes"
+          git init -q -b quotes
+          git add quotes.json
+          git -c user.name=fisc-data-bot -c user.email=data-bot@users.noreply.github.com commit -qm "Giá $(TZ=Asia/Ho_Chi_Minh date +'%d/%m/%Y %H:%M')"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" quotes

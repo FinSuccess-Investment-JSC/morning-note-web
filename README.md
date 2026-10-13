@@ -5,3 +5,4 @@ Trang tĩnh được build và publish tự động từ repo private `Morning-n
 - `index.html`: bản tin cho khách hàng (gắn lên website bằng iframe).
 - `admin.html`: trang quản trị cho team, cần key GitHub có quyền với repo `Morning-note`.
 - `data/customer.json`: bản tin mới nhất, workflow `update-data` cập nhật theo lịch.
+- `.github/workflows/quotes.yml` + `tools/quotes.mjs`: lấy giá ~10 phút/lần, ghi vào nhánh `quotes` (trang đọc file này để giá mới hơn bản tin). Tiền điện tử còn được trình duyệt lấy trực tiếp từ CoinGecko mỗi phút.
