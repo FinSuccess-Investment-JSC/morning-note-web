@@ -6,7 +6,7 @@ name: quotes
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "7-59/10 * * * *"   # phút 07, 17, 27…: tránh đầu giờ, lúc GitHub hay hoãn lịch
   workflow_dispatch:
 
 concurrency:
