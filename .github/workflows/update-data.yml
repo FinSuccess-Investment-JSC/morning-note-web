@@ -2,9 +2,9 @@
 # File này do workflow deploy-site của repo Morning-note (private) chép sang; sửa ở đó, không sửa ở đây.
 # Chạy ở repo public nên không tốn phút Actions của tổ chức.
 #
-# Kích hoạt: lịch GitHub thử mỗi 20 phút từ 06:00 đến 22:40 (giờ VN) và chỉ lấy tin khi lượt lấy tin gần nhất
-# đã cũ hơn 50 phút, nên vẫn được khoảng mỗi giờ một lượt dù GitHub hay hoãn hoặc bỏ lịch (repo public, không tốn
-# phút). Có thể thêm cron-job.org gọi workflow_dispatch (luôn chạy). Nút "Cập nhật" trên admin cũng gọi workflow_dispatch.
+# Kích hoạt: cron-job.org gọi workflow_dispatch lúc :30 mỗi giờ 06:30–22:30 (giờ VN); nút "Cập nhật" trên admin cũng vậy.
+# Lịch GitHub bên dưới chỉ là dự phòng (ở repo này GitHub gần như bỏ qua lịch): thử mỗi 20 phút và chỉ lấy tin khi
+# lượt lấy tin gần nhất đã cũ hơn 50 phút.
 # Tạm dừng lịch: biến repo MORNING_NOTE_ENABLED = false.
 #
 # Secret:  MORNING_NOTE_CONFIG_TOKEN  fine-grained token chỉ đọc (Contents: Read) repo private Morning-note,
