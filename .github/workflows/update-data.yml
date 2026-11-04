@@ -1,0 +1,90 @@
+# Lấy giá + tin, tính lại bản tin và ghi data/customer.json (nhánh main của repo này).
+# File này do workflow deploy-site của repo Morning-note (private) chép sang; sửa ở đó, không sửa ở đây.
+# Chạy ở repo public nên không tốn phút Actions của tổ chức.
+#
+# Kích hoạt: cron-job.org gọi workflow_dispatch mỗi giờ 06:30–22:30 (giờ VN); nút "Cập nhật" trên trang admin.
+# Lịch GitHub bên dưới chỉ là dự phòng (hay bị hoãn); tắt bằng biến repo MORNING_NOTE_ENABLED = false.
+#
+# Secret:  MORNING_NOTE_CONFIG_TOKEN  fine-grained token chỉ đọc (Contents: Read) repo private Morning-note,
+#          để đọc state/config.json (lựa chọn của team). Bộ cập nhật không bao giờ ghi config.
+# Bộ nhớ đệm: nhánh data-state của repo này (state/cache.json, state/view.json; 1 commit, ghi đè).
+name: update-data
+
+on:
+  schedule:
+    - cron: "23 22,0,2,4,6,8,10 * * *"  # 05:23, 07:23 … 17:23 giờ VN
+  workflow_dispatch:
+    inputs:
+      fetch:
+        description: "Lấy giá và tin mới"
+        type: boolean
+        default: true
+
+concurrency:
+  group: morning-note-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.event_name != 'schedule' || vars.MORNING_NOTE_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Ho_Chi_Minh
+      FETCH: ${{ github.event_name == 'schedule' || inputs.fetch }}
+      CONFIG_URL: https://api.github.com/repos/FinSuccess-Investment-JSC/Morning-note/contents/state/config.json?ref=main
+      CONFIG_TOKEN: ${{ secrets.MORNING_NOTE_CONFIG_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Đọc lựa chọn của team và bộ nhớ đệm
+        run: |
+          mkdir -p cache
+          curl -fsS -H "Authorization: Bearer $CONFIG_TOKEN" -H "Accept: application/vnd.github.raw+json" "$CONFIG_URL" -o config.json
+          node -e 'JSON.parse(require("fs").readFileSync("config.json","utf8"))'
+          if git fetch -q --depth 1 origin data-state; then git show FETCH_HEAD:state/cache.json > cache/cache.json; fi
+
+      - name: Lấy giá, tin và tính bản tin
+        run: node --no-warnings tools/update.mjs --config config.json --cache cache/cache.json --out out --budget 80 $([ "$FETCH" = true ] || echo --no-fetch)
+
+      - name: Tính lại bản tin với lựa chọn mới nhất của admin
+        # Nếu team sửa trong lúc lượt này đang lấy tin, dùng cấu hình mới nhất để không ghi đè lựa chọn đó.
+        run: |
+          curl -fsS -H "Authorization: Bearer $CONFIG_TOKEN" -H "Accept: application/vnd.github.raw+json" "$CONFIG_URL" -o latest.json
+          if ! cmp -s latest.json config.json; then
+            node --no-warnings tools/update.mjs --config latest.json --cache cache/cache.json --out out --no-fetch
+          fi
+
+      - name: Lưu bộ nhớ đệm vào nhánh data-state
+        run: |
+          mkdir -p "$RUNNER_TEMP/data-state/state" && cp cache/cache.json cache/view.json "$RUNNER_TEMP/data-state/state/"
+          cd "$RUNNER_TEMP/data-state"
+          git init -q -b data-state
+          git add -A
+          git -c user.name=fisc-data-bot -c user.email=data-bot@users.noreply.github.com commit -qm "Trạng thái $(date +'%d/%m/%Y %H:%M')"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-state
+
+      - name: Ghi bản tin
+        run: |
+          git config user.name fisc-data-bot
+          git config user.email data-bot@users.noreply.github.com
+          for i in 1 2 3; do
+            git pull -q --rebase origin main
+            mkdir -p data && cp out/data/customer.json data/customer.json
+            git add data/customer.json
+            if git diff --cached --quiet; then echo "Không có thay đổi"; exit 0; fi
+            git commit -qm "Cập nhật bản tin $(date +'%d/%m/%Y %H:%M')"
+            git push -q origin HEAD:main && exit 0
+            git reset -q --hard origin/main
+          done
+          exit 1
