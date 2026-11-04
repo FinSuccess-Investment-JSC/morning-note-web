@@ -2,8 +2,10 @@
 # File này do workflow deploy-site của repo Morning-note (private) chép sang; sửa ở đó, không sửa ở đây.
 # Chạy ở repo public nên không tốn phút Actions của tổ chức.
 #
-# Kích hoạt: cron-job.org gọi workflow_dispatch mỗi giờ 06:30–22:30 (giờ VN); nút "Cập nhật" trên trang admin.
-# Lịch GitHub bên dưới chỉ là dự phòng (hay bị hoãn); tắt bằng biến repo MORNING_NOTE_ENABLED = false.
+# Kích hoạt: lịch GitHub thử mỗi 20 phút từ 06:00 đến 22:40 (giờ VN) và chỉ lấy tin khi lượt lấy tin gần nhất
+# đã cũ hơn 50 phút, nên vẫn được khoảng mỗi giờ một lượt dù GitHub hay hoãn hoặc bỏ lịch (repo public, không tốn
+# phút). Có thể thêm cron-job.org gọi workflow_dispatch (luôn chạy). Nút "Cập nhật" trên admin cũng gọi workflow_dispatch.
+# Tạm dừng lịch: biến repo MORNING_NOTE_ENABLED = false.
 #
 # Secret:  MORNING_NOTE_CONFIG_TOKEN  fine-grained token chỉ đọc (Contents: Read) repo private Morning-note,
 #          để đọc state/config.json (lựa chọn của team). Bộ cập nhật không bao giờ ghi config.
@@ -12,7 +14,7 @@ name: update-data
 
 on:
   schedule:
-    - cron: "23 22,0,2,4,6,8,10 * * *"  # 05:23, 07:23 … 17:23 giờ VN
+    - cron: "*/20 23,0-15 * * *"  # 06:00–22:40 giờ VN
   workflow_dispatch:
     inputs:
       fetch:
@@ -47,17 +49,30 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Bỏ qua nếu vừa lấy tin
+        # Chỉ bộ lấy tin ghi nhánh data-state, nên thời điểm commit của nhánh này là lần lấy tin gần nhất.
+        id: due
+        run: |
+          last=0
+          if git fetch -q --depth 1 origin data-state:refs/remotes/origin/data-state; then last=$(git log -1 --format=%ct origin/data-state); fi
+          if [ "${{ github.event_name }}" = schedule ] && [ $(( $(date +%s) - last )) -lt 3000 ]; then
+            echo "Lượt lấy tin gần nhất chưa quá 50 phút, bỏ qua."; echo run=false >> "$GITHUB_OUTPUT"
+          else echo run=true >> "$GITHUB_OUTPUT"; fi
+
       - name: Đọc lựa chọn của team và bộ nhớ đệm
+        if: steps.due.outputs.run == 'true'
         run: |
           mkdir -p cache
           curl -fsS -H "Authorization: Bearer $CONFIG_TOKEN" -H "Accept: application/vnd.github.raw+json" "$CONFIG_URL" -o config.json
           node -e 'JSON.parse(require("fs").readFileSync("config.json","utf8"))'
-          if git fetch -q --depth 1 origin data-state; then git show FETCH_HEAD:state/cache.json > cache/cache.json; fi
+          if git rev-parse -q --verify origin/data-state >/dev/null; then git show origin/data-state:state/cache.json > cache/cache.json; fi
 
       - name: Lấy giá, tin và tính bản tin
+        if: steps.due.outputs.run == 'true'
         run: node --no-warnings tools/update.mjs --config config.json --cache cache/cache.json --out out --budget 80 $([ "$FETCH" = true ] || echo --no-fetch)
 
       - name: Tính lại bản tin với lựa chọn mới nhất của admin
+        if: steps.due.outputs.run == 'true'
         # Nếu team sửa trong lúc lượt này đang lấy tin, dùng cấu hình mới nhất để không ghi đè lựa chọn đó.
         run: |
           curl -fsS -H "Authorization: Bearer $CONFIG_TOKEN" -H "Accept: application/vnd.github.raw+json" "$CONFIG_URL" -o latest.json
@@ -66,6 +81,7 @@ jobs:
           fi
 
       - name: Lưu bộ nhớ đệm vào nhánh data-state
+        if: steps.due.outputs.run == 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/data-state/state" && cp cache/cache.json cache/view.json "$RUNNER_TEMP/data-state/state/"
           cd "$RUNNER_TEMP/data-state"
@@ -75,6 +91,7 @@ jobs:
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-state
 
       - name: Ghi bản tin
+        if: steps.due.outputs.run == 'true'
         run: |
           git config user.name fisc-data-bot
           git config user.email data-bot@users.noreply.github.com
